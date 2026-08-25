@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "@/lib/axios";
 
 interface AdminUserRow {
@@ -26,6 +27,13 @@ export default function AdminDashboard() {
       <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
         All registered users (admin-only endpoint).
       </p>
+
+      <Link
+        to="/admin/appointments"
+        className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+      >
+        View all appointments →
+      </Link>
 
       {error && <p className="mt-4 text-sm text-red-500 dark:text-red-400">{error}</p>}
 

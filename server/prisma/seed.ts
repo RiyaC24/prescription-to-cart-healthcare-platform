@@ -64,7 +64,7 @@ async function main() {
     lastName: "Admin",
   });
 
-  await upsertUser({
+  const doctor = await upsertUser({
     email: "doctor@prescriptiontocart.com",
     role: Role.DOCTOR,
     firstName: "Dana",
@@ -77,6 +77,39 @@ async function main() {
     firstName: "Pat",
     lastName: "Patient",
   });
+
+  // A few open availability slots over the next few days so the
+  // appointments flow has something to book against out of the box.
+  const doctorProfile = await prisma.doctorProfile.findUnique({ where: { userId: doctor.id } });
+  if (doctorProfile) {
+    const existingSlots = await prisma.availabilitySlot.count({
+      where: { doctorId: doctorProfile.id },
+    });
+
+    if (existingSlots === 0) {
+      const now = new Date();
+      const slotOffsets = [
+        { days: 1, hour: 10 },
+        { days: 1, hour: 14 },
+        { days: 2, hour: 9 },
+        { days: 3, hour: 11 },
+      ];
+
+      for (const { days, hour } of slotOffsets) {
+        const start = new Date(now);
+        start.setDate(start.getDate() + days);
+        start.setHours(hour, 0, 0, 0);
+        const end = new Date(start);
+        end.setMinutes(end.getMinutes() + 30);
+
+        await prisma.availabilitySlot.create({
+          data: { doctorId: doctorProfile.id, startTime: start, endTime: end },
+        });
+      }
+
+      console.log("Seeded 4 sample availability slots for the demo doctor.");
+    }
+  }
 
   console.log("Seed complete. Dev password for all seeded users:", DEV_PASSWORD);
 }

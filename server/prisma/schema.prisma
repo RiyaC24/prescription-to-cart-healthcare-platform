@@ -1,6 +1,7 @@
 // Prescription-to-Cart Healthcare Platform
-// Phase 1: Core auth & identity models only.
-// Appointments, prescriptions, pharmacy, cart, and payments are intentionally
+// Phase 1: Core auth & identity models.
+// Phase 2: Appointments (doctor availability + booking) added below.
+// Prescriptions, pharmacy, cart, and payments are still intentionally
 // excluded and will be added in later phases.
 
 generator client {
@@ -47,6 +48,8 @@ model PatientProfile {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  appointments Appointment[]
+
   @@map("patient_profiles")
 }
 
@@ -63,6 +66,9 @@ model DoctorProfile {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  availabilitySlots AvailabilitySlot[]
+  appointments      Appointment[]
+
   @@map("doctor_profiles")
 }
 
@@ -78,4 +84,53 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+// --- Phase 2: Appointments ---------------------------------------------
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// A single bookable window a doctor has opened up. Booking an appointment
+// consumes the slot (isBooked = true); cancelling an appointment frees it
+// again so it can be rebooked.
+model AvailabilitySlot {
+  id        String   @id @default(uuid())
+  doctorId  String   @map("doctor_id")
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
+  isBooked  Boolean  @default(false) @map("is_booked")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  doctor      DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  appointment Appointment?
+
+  @@index([doctorId, startTime])
+  @@map("availability_slots")
+}
+
+model Appointment {
+  id           String            @id @default(uuid())
+  patientId    String            @map("patient_id")
+  doctorId     String            @map("doctor_id")
+  slotId       String            @unique @map("slot_id")
+  status       AppointmentStatus @default(PENDING)
+  reason       String?
+  notes        String?
+  cancelReason String?           @map("cancel_reason")
+  cancelledAt  DateTime?         @map("cancelled_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  patient PatientProfile   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor  DoctorProfile    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  slot    AvailabilitySlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@map("appointments")
 }

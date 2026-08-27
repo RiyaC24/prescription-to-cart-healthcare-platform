@@ -1,4 +1,4 @@
-# Prescription-to-Cart — Phase 2
+# Prescription-to-Cart
 
 Phase 1 core platform (auth, roles, modular monolith) plus Phase 2
 appointments: doctor availability management and patient booking.
